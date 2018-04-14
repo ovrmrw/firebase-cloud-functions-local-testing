@@ -29,9 +29,13 @@ describe('hogefoo', () => {
     await database
       .ref(refPath)
       .once('value')
-      .then(createdSnapshot => {
-        console.log('val:', createdSnapshot.val());
-        expect(createdSnapshot.val()).toEqual(expected);
+      .then(snap => {
+        expect(snap.val()).toEqual({
+          ...value,
+          pushId,
+          eventId
+        });
+        console.log(`val at ${refPath}:`, snap.val());
       });
   });
 });

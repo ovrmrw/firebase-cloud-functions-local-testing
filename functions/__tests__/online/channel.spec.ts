@@ -21,16 +21,16 @@ describe('channel', () => {
     const userId = 'userId1';
     const pushId = 'pushId1';
     const timestamp = 'timestamp1';
-    const refPath = `channel/${accountId}/${userId}/${pushId}`;
+    const channelRefPath = `channel/${accountId}/${userId}/${pushId}`;
     const value = { bar: 1 };
 
-    const snapshot = test.database.makeDataSnapshot(value, refPath);
+    const snapshot = test.database.makeDataSnapshot(value, channelRefPath);
     await test.wrap(channel)(snapshot, {
       params: { accountId, userId, pushId },
       timestamp
     });
     await database
-      .ref(refPath)
+      .ref(channelRefPath)
       .once('value')
       .then(snap => {
         expect(snap.val()).toEqual({
@@ -40,11 +40,12 @@ describe('channel', () => {
           channelId: pushId,
           timestamp
         });
-        console.log('val at channel tree:', snap.val());
+        console.log(`val at ${channelRefPath}:`, snap.val());
       });
 
+    const tempSessionRefPath = `_session/${accountId}/${userId}`;
     const _session = await database
-      .ref(`_session/${accountId}/${userId}`)
+      .ref(tempSessionRefPath)
       .once('value')
       .then(snap => {
         expect(snap.val()).toEqual({
@@ -53,13 +54,13 @@ describe('channel', () => {
           sessionId: pushId,
           startedAt: timestamp
         });
-        console.log('val at _session tree:', snap.val());
+        console.log(`val at ${tempSessionRefPath}:`, snap.val());
       });
     const session = await database
       .ref(`session/${accountId}/${userId}`)
       .once('value')
       .then(snap => {
-        expect(snap.val() === null);
+        expect(snap.val()).toBeNull();
       });
     await Promise.all([_session, session]);
   });
@@ -89,10 +90,11 @@ describe('channel', () => {
       .ref(`_session/${accountId}/${userId}`)
       .once('value')
       .then(snap => {
-        expect(snap.val() === null);
+        expect(snap.val()).toBeNull();
       });
+    const sessionRefPath = `session/${accountId}/${userId}/${pushId1}`;
     const session = database
-      .ref(`session/${accountId}/${userId}/${pushId1}`)
+      .ref(sessionRefPath)
       .once('value')
       .then(snap => {
         expect(snap.val()).toEqual({
@@ -102,7 +104,7 @@ describe('channel', () => {
           startedAt: timestamp1,
           endedAt: timestamp2
         });
-        console.log('val at session tree:', snap.val());
+        console.log(`val at ${sessionRefPath}:`, snap.val());
       });
     await Promise.all([_session, session]);
   });
