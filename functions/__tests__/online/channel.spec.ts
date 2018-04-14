@@ -29,7 +29,8 @@ describe('channel', () => {
       params: { accountId, userId, pushId },
       timestamp
     });
-    await database
+
+    const channelAssert = await database
       .ref(channelRefPath)
       .once('value')
       .then(snap => {
@@ -42,9 +43,8 @@ describe('channel', () => {
         });
         console.log(`val at ${channelRefPath}:`, snap.val());
       });
-
     const tempSessionRefPath = `_session/${accountId}/${userId}`;
-    const _session = await database
+    const tempSessionAssert = await database
       .ref(tempSessionRefPath)
       .once('value')
       .then(snap => {
@@ -56,13 +56,13 @@ describe('channel', () => {
         });
         console.log(`val at ${tempSessionRefPath}:`, snap.val());
       });
-    const session = await database
+    const sessionAssert = await database
       .ref(`session/${accountId}/${userId}`)
       .once('value')
       .then(snap => {
         expect(snap.val()).toBeNull();
       });
-    await Promise.all([_session, session]);
+    await Promise.all([channelAssert, tempSessionAssert, sessionAssert]);
   });
 
   it('channelに2回目の書き込みが行われるとsessionが完了する。', async () => {
@@ -86,14 +86,14 @@ describe('channel', () => {
       timestamp: timestamp2
     });
 
-    const _session = database
+    const tempSessionAssert = database
       .ref(`_session/${accountId}/${userId}`)
       .once('value')
       .then(snap => {
         expect(snap.val()).toBeNull();
       });
     const sessionRefPath = `session/${accountId}/${userId}/${pushId1}`;
-    const session = database
+    const sessionAssert = database
       .ref(sessionRefPath)
       .once('value')
       .then(snap => {
@@ -106,6 +106,6 @@ describe('channel', () => {
         });
         console.log(`val at ${sessionRefPath}:`, snap.val());
       });
-    await Promise.all([_session, session]);
+    await Promise.all([tempSessionAssert, sessionAssert]);
   });
 });

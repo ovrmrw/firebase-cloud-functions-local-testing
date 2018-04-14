@@ -9,15 +9,15 @@ export const channel = functions.database
     const { timestamp } = context;
     const { accountId, userId, pushId } = context.params;
     const val = snapshot.val();
-    const update = snapshot.ref.update({
+    const updateChannel = snapshot.ref.update({
       ...val,
       accountId,
       userId,
       channelId: pushId,
       timestamp
     });
-    const session = sessionController(accountId, userId, pushId, timestamp);
-    await Promise.all([update, session]);
+    const sessionize = sessionController(accountId, userId, pushId, timestamp);
+    await Promise.all([updateChannel, sessionize]);
   });
 
 async function sessionController(
@@ -31,18 +31,19 @@ async function sessionController(
   const val = session.val();
   if (val) {
     const sessionRefPath = `session/${accountId}/${userId}/${val.sessionId}`;
-    const set = database.ref(sessionRefPath).set({
+    const setSession = database.ref(sessionRefPath).set({
       ...val,
       endedAt: timestamp
     });
-    const remove = database.ref(tempRefPath).remove();
-    await Promise.all([set, remove]);
+    const removeTempSession = database.ref(tempRefPath).remove();
+    await Promise.all([setSession, removeTempSession]);
   } else {
-    await database.ref(tempRefPath).set({
+    const setTempSession = database.ref(tempRefPath).set({
       accountId,
       userId,
       sessionId: pushId,
       startedAt: timestamp
     });
+    await setTempSession;
   }
 }
