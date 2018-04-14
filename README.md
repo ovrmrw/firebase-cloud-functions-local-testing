@@ -14,3 +14,4 @@
 - `firebase serve` でserveできるのはHTTPトリガーのFunctionだけ。
 - `firebase functions:shell` を使うと全てのFunctionをローカルで実行できる。ただしその副作用は実際のFirebaseプロジェクトに反映される。
 - shellでFunctionを叩くとき、同名のFunctionが既にデプロイされていればサーバーにログが残る。
+- FunctionをデプロイしてしまっているとオンラインテストのときにローカルのFunctionとサーバーのFunctionの両方がイベントに対して発火してしまい、テストで嵌まる。
