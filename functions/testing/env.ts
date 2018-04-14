@@ -1,17 +1,24 @@
 // tslint:disable:no-implicit-dependencies
-import * as fs from 'fs';
-import * as path from 'path';
+import * as assert from 'assert';
 import * as Test from 'firebase-functions-test';
 
-const firebasercPath = path.join(path.resolve(), '../.firebaserc');
-const firebaserc: any = JSON.parse(fs.readFileSync(firebasercPath).toString());
+export const serviceAccount = require('../../secrets/serviceAccountKey.testing.json');
 
-export const projectId: string = firebaserc.projects.default;
-export const databaseURL = `https://${projectId}.firebaseio.com`;
+const projectId: string = serviceAccount.project_id;
+const databaseURL = `https://${projectId}.firebaseio.com`;
 
-console.log('projectId:', projectId);
-console.log('databaseURL:', databaseURL);
+export const test = Test({
+  projectId,
+  databaseURL
+});
 
-export const test = Test({ projectId, databaseURL });
-
-console.log('process.env.FIREBASE_CONFIG:', process.env.FIREBASE_CONFIG);
+try {
+  const { projectId: _projectId, databaseURL: _databaseURL } = JSON.parse(
+    process.env.FIREBASE_CONFIG
+  );
+  assert(!!_projectId);
+  assert(!!_databaseURL);
+} catch (err) {
+  console.log('process.env.FIREBASE_CONFIG:', process.env.FIREBASE_CONFIG);
+  throw err;
+}

@@ -1,17 +1,19 @@
 import * as admin from 'firebase-admin';
-
-export type AdminApp = admin.app.App;
+import { serviceAccount } from './env';
 
 /**
  * admin.initializeApp()が未実行であれば実行した上でAppを返す。
  */
-export function initializeAppSafe(): AdminApp {
-  const name = 'TESTING';
+export function initializeAppSafe(): admin.app.App {
+  const name = '__TESTING__';
   const appForTesting = admin.apps.find(app => app.name === name);
   if (appForTesting) {
     return appForTesting;
   } else {
-    const config = JSON.parse(process.env.FIREBASE_CONFIG);
+    const config = {
+      ...JSON.parse(process.env.FIREBASE_CONFIG),
+      credential: admin.credential.cert(serviceAccount)
+    };
     return admin.initializeApp(config, name);
   }
 }
@@ -22,16 +24,11 @@ export function initializeAppSafe(): AdminApp {
  */
 export function removeFromDatabase(refPath: string | string[]): Promise<void> {
   const database = initializeAppSafe().database();
-  if (refPath instanceof Array) {
-    const promises = refPath.map(path => database.ref(path).remove());
-    return Promise.all(promises)
-      .then(() => void 0)
-      .catch(console.error);
-  } else {
-    return database
-      .ref(refPath)
-      .remove()
-      .then(() => void 0)
-      .catch(console.error);
-  }
+  const promises: Promise<void>[] =
+    refPath instanceof Array
+      ? refPath.map(path => database.ref(path).remove())
+      : [database.ref(refPath).remove()];
+  return Promise.all(promises)
+    .then(() => void 0)
+    .catch(console.error);
 }
