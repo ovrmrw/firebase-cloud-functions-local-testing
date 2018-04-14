@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig",
+  "compilerOptions": {
+    "lib": [
+      "esnext"
+    ],
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node"
+  },
+  "include": [
+    ".",
+    "../testing"
+  ]
+}

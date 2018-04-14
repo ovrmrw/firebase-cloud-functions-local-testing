@@ -1,0 +1,1 @@
+export { hogefoo } from './hogefoo';
