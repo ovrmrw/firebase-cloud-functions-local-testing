@@ -7,19 +7,16 @@ describe('hogefoo', () => {
   let app: AdminApp;
   let database: Database;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     app = initializeAppSafe();
     database = app.database();
-  });
-
-  afterEach(async () => {
-    await removeFromDatabase(['hoge']);
+    await removeFromDatabase(['/hoge/']);
   });
 
   it('valueにpushIdとeventIdが付与される', async () => {
     const pushId = 'pushId1';
     const eventId = 'eventId1';
-    const refPath = `hoge/foo/${pushId}`;
+    const refPath = `/hoge/foo/${pushId}`;
     const value = { bar: 1 };
     const expected = { ...value, pushId, eventId };
 

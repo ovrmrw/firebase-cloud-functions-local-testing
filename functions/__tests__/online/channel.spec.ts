@@ -7,13 +7,10 @@ describe('channel', () => {
   let app: AdminApp;
   let database: Database;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     app = initializeAppSafe();
     database = app.database();
-  });
-
-  afterEach(async () => {
-    await removeFromDatabase(['channel', '_session', 'session']);
+    await removeFromDatabase(['/_session/', '/session/', '/channel/']);
   });
 
   it('valueにaccountId, userId, pushId, timestampが付与され、sessionがスタートする。', async () => {
@@ -21,7 +18,7 @@ describe('channel', () => {
     const userId = 'userId1';
     const pushId = 'pushId1';
     const timestamp = 'timestamp1';
-    const channelRefPath = `channel/${accountId}/${userId}/${pushId}`;
+    const channelRefPath = `/channel/${accountId}/${userId}/${pushId}`;
     const value = { bar: 1 };
 
     const snapshot = test.database.makeDataSnapshot(value, channelRefPath);
@@ -30,7 +27,7 @@ describe('channel', () => {
       timestamp
     });
 
-    const channelAssert = await database
+    const channelAssert = database
       .ref(channelRefPath)
       .once('value')
       .then(snap => {
@@ -39,12 +36,14 @@ describe('channel', () => {
           accountId,
           userId,
           channelId: pushId,
+          sessionId: pushId,
           timestamp
         });
         console.log(`val at ${channelRefPath}:`, snap.val());
       });
-    const tempSessionRefPath = `_session/${accountId}/${userId}`;
-    const tempSessionAssert = await database
+    const tempSessionRefPath = `/_session/${accountId}/${userId}`;
+    const tempSessionAssert = app
+      .database()
       .ref(tempSessionRefPath)
       .once('value')
       .then(snap => {
@@ -56,8 +55,9 @@ describe('channel', () => {
         });
         console.log(`val at ${tempSessionRefPath}:`, snap.val());
       });
-    const sessionAssert = await database
-      .ref(`session/${accountId}/${userId}`)
+    const sessionAssert = app
+      .database()
+      .ref(`/session/${accountId}/${userId}`)
       .once('value')
       .then(snap => {
         expect(snap.val()).toBeNull();
@@ -72,7 +72,7 @@ describe('channel', () => {
     const pushId2 = 'pushId2';
     const timestamp1 = 'timestamp1';
     const timestamp2 = 'timestamp2';
-    const channelRefPath = `channel/${accountId}/${userId}/`;
+    const channelRefPath = `/channel/${accountId}/${userId}/`;
     const value = { bar: 1 };
 
     const snapshot1 = test.database.makeDataSnapshot(value, `${channelRefPath}/${pushId1}`);
@@ -86,6 +86,21 @@ describe('channel', () => {
       timestamp: timestamp2
     });
 
+    const channelRefPath2 = `${channelRefPath}/${pushId2}`;
+    const channelAssert = database
+      .ref(channelRefPath2)
+      .once('value')
+      .then(snap => {
+        expect(snap.val()).toEqual({
+          ...value,
+          accountId,
+          userId,
+          channelId: pushId2,
+          sessionId: pushId1,
+          timestamp: timestamp2
+        });
+        console.log(`val at ${channelRefPath2}:`, snap.val());
+      });
     const tempSessionAssert = database
       .ref(`_session/${accountId}/${userId}`)
       .once('value')
@@ -106,6 +121,6 @@ describe('channel', () => {
         });
         console.log(`val at ${sessionRefPath}:`, snap.val());
       });
-    await Promise.all([tempSessionAssert, sessionAssert]);
+    await Promise.all([channelAssert, tempSessionAssert, sessionAssert]);
   });
 });
