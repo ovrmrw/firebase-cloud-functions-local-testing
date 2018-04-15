@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
-import { serviceAccount } from './env';
+
+type DataSnapshot = admin.database.DataSnapshot;
 
 /**
  * admin.initializeApp()が未実行であれば実行した上でAppを返す。
@@ -10,25 +11,36 @@ export function initializeAppSafe(): admin.app.App {
   if (appForTesting) {
     return appForTesting;
   } else {
-    const config = {
-      ...JSON.parse(process.env.FIREBASE_CONFIG),
-      credential: admin.credential.cert(serviceAccount)
-    };
-    return admin.initializeApp(config, name);
+    return admin.initializeApp(undefined, name);
   }
 }
 
 /**
- * 指定したパスをRealtime Databaseから削除する。
- * @param refPath 削除するパス
+ * Readltime Databaseに関する処理を簡潔に記述するためのヘルパークラス。
  */
-export function removeFromDatabase(refPath: string | string[]): Promise<void> {
-  const database = initializeAppSafe().database();
-  const promises: Promise<void>[] =
-    refPath instanceof Array
-      ? refPath.map(path => database.ref(path).remove())
-      : [database.ref(refPath).remove()];
-  return Promise.all(promises)
-    .then(() => void 0)
-    .catch(console.error);
+export class DatabaseHelper {
+  private database: admin.database.Database;
+
+  constructor(app: admin.app.App) {
+    this.database = app.database();
+  }
+
+  refOnceValue(refPath: string | string[]): Promise<{ val: any; snap: DataSnapshot }> {
+    const _refPath: string = refPath instanceof Array ? '/' + refPath.join('/') : refPath;
+    return this.database
+      .ref(_refPath)
+      .once('value')
+      .then((snap: DataSnapshot) => ({
+        val: snap.val(),
+        snap: snap
+      }));
+  }
+
+  refRemove(refPath: string | string[]): Promise<void> {
+    const promises: Promise<void>[] =
+      refPath instanceof Array
+        ? refPath.map(path => this.database.ref(path).remove())
+        : [this.database.ref(refPath).remove()];
+    return Promise.all(promises).then(() => void 0);
+  }
 }

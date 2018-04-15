@@ -3,12 +3,14 @@
   "scripts": {
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
-    "serve": "npm run build && firebase serve --only functions",
-    "shell": "npm run build && firebase functions:shell",
+    "serve": "npm run use:test && npm run build && firebase serve --only functions",
+    "shell": "npm run use:test && npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
+    "deploy": "npm run use:prod && firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "jest --forceExit"
+    "test": "jest --forceExit",
+    "use:prod": "firebase use default",
+    "env:test": "firebase use test"
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@types/jest": "^22.2.3",
+    "dotenv": "^5.0.1",
     "firebase-functions-test": "^0.1.1",
     "firebase-tools": "^3.18.4",
     "jest": "^22.4.3",

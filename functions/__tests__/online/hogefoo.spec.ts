@@ -1,16 +1,14 @@
 import { test } from '../../testing/env';
+import { initializeAppSafe, DatabaseHelper } from '../../testing/helpers';
 import { hogefoo } from '../../src/index'; // process.env.FIREBASE_CONFIGの定義後にimportしないとエラーになる。
-import { initializeAppSafe, removeFromDatabase } from '../../testing/helpers';
-import { AdminApp, Database } from '../../testing/types';
 
 describe('hogefoo', () => {
-  let app: AdminApp;
-  let database: Database;
+  let database: DatabaseHelper;
 
   beforeEach(async () => {
-    app = initializeAppSafe();
-    database = app.database();
-    await removeFromDatabase(['/hoge/']);
+    const app = initializeAppSafe();
+    database = new DatabaseHelper(app);
+    await database.refRemove(['/hoge/']);
   });
 
   it('valueにpushIdとeventIdが付与される', async () => {
@@ -23,16 +21,13 @@ describe('hogefoo', () => {
     const snapshot = test.database.makeDataSnapshot(value, refPath);
     await test.wrap(hogefoo)(snapshot, { params: { pushId }, eventId });
 
-    await database
-      .ref(refPath)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toEqual({
-          ...value,
-          pushId,
-          eventId
-        });
-        console.log(`val at ${refPath}:`, snap.val());
+    await database.refOnceValue(refPath).then(({ val }) => {
+      expect(val).toEqual({
+        ...value,
+        pushId,
+        eventId
       });
+      console.log(`val at ${refPath}:`, val);
+    });
   });
 });

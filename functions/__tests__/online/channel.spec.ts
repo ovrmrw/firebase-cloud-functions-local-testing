@@ -1,23 +1,21 @@
 import { test } from '../../testing/env';
-import { initializeAppSafe, removeFromDatabase } from '../../testing/helpers';
-import { AdminApp, Database } from '../../testing/types';
+import { initializeAppSafe, DatabaseHelper } from '../../testing/helpers';
 import { channel } from '../../src/index'; // process.env.FIREBASE_CONFIGの定義後にimportしないとエラーになる。
 
 describe('channel', () => {
-  let app: AdminApp;
-  let database: Database;
+  let database: DatabaseHelper;
 
   beforeEach(async () => {
-    app = initializeAppSafe();
-    database = app.database();
-    await removeFromDatabase(['/_session/', '/session/', '/channel/']);
+    const app = initializeAppSafe();
+    database = new DatabaseHelper(app);
+    await database.refRemove(['/_session/', '/session/', '/channel/']);
   });
 
   it('valueにaccountId, userId, pushId, timestampが付与され、sessionがスタートする。', async () => {
     const accountId = 'accountId1';
     const userId = 'userId1';
     const pushId = 'pushId1';
-    const timestamp = 'timestamp1';
+    const timestamp = '2018-01-01T00:00:01.000Z';
     const channelRefPath = `/channel/${accountId}/${userId}/${pushId}`;
     const value = { bar: 1 };
 
@@ -27,40 +25,31 @@ describe('channel', () => {
       timestamp
     });
 
-    const channelAssert = database
-      .ref(channelRefPath)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toEqual({
-          ...value,
-          accountId,
-          userId,
-          channelId: pushId,
-          sessionId: pushId,
-          timestamp
-        });
-        console.log(`val at ${channelRefPath}:`, snap.val());
+    const channelAssert = database.refOnceValue(channelRefPath).then(({ val }) => {
+      expect(val).toEqual({
+        ...value,
+        accountId,
+        userId,
+        channelId: pushId,
+        sessionId: pushId,
+        timestamp
       });
+      console.log(`val at ${channelRefPath}:`, val);
+    });
     const tempSessionRefPath = `/_session/${accountId}/${userId}`;
-    const tempSessionAssert = app
-      .database()
-      .ref(tempSessionRefPath)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toEqual({
-          accountId,
-          userId,
-          sessionId: pushId,
-          startedAt: timestamp
-        });
-        console.log(`val at ${tempSessionRefPath}:`, snap.val());
+    const tempSessionAssert = database.refOnceValue(tempSessionRefPath).then(({ val }) => {
+      expect(val).toEqual({
+        accountId,
+        userId,
+        sessionId: pushId,
+        startedAt: timestamp
       });
-    const sessionAssert = app
-      .database()
-      .ref(`/session/${accountId}/${userId}`)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toBeNull();
+      console.log(`val at ${tempSessionRefPath}:`, val);
+    });
+    const sessionAssert = database
+      .refOnceValue(`/session/${accountId}/${userId}`)
+      .then(({ val }) => {
+        expect(val).toBeNull();
       });
     await Promise.all([channelAssert, tempSessionAssert, sessionAssert]);
   });
@@ -70,8 +59,8 @@ describe('channel', () => {
     const userId = 'userId1';
     const pushId1 = 'pushId1';
     const pushId2 = 'pushId2';
-    const timestamp1 = 'timestamp1';
-    const timestamp2 = 'timestamp2';
+    const timestamp1 = '2018-01-01T00:00:01.000Z';
+    const timestamp2 = '2018-01-01T00:00:02.000Z';
     const channelRefPath = `/channel/${accountId}/${userId}/`;
     const value = { bar: 1 };
 
@@ -87,40 +76,33 @@ describe('channel', () => {
     });
 
     const channelRefPath2 = `${channelRefPath}/${pushId2}`;
-    const channelAssert = database
-      .ref(channelRefPath2)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toEqual({
-          ...value,
-          accountId,
-          userId,
-          channelId: pushId2,
-          sessionId: pushId1,
-          timestamp: timestamp2
-        });
-        console.log(`val at ${channelRefPath2}:`, snap.val());
+    const channelAssert = database.refOnceValue(channelRefPath2).then(({ val }) => {
+      expect(val).toEqual({
+        ...value,
+        accountId,
+        userId,
+        channelId: pushId2,
+        sessionId: pushId1,
+        timestamp: timestamp2
       });
+      console.log(`val at ${channelRefPath2}:`, val);
+    });
     const tempSessionAssert = database
-      .ref(`_session/${accountId}/${userId}`)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toBeNull();
+      .refOnceValue(`_session/${accountId}/${userId}`)
+      .then(({ val }) => {
+        expect(val).toBeNull();
       });
     const sessionRefPath = `session/${accountId}/${userId}/${pushId1}`;
-    const sessionAssert = database
-      .ref(sessionRefPath)
-      .once('value')
-      .then(snap => {
-        expect(snap.val()).toEqual({
-          accountId,
-          userId,
-          sessionId: pushId1,
-          startedAt: timestamp1,
-          endedAt: timestamp2
-        });
-        console.log(`val at ${sessionRefPath}:`, snap.val());
+    const sessionAssert = database.refOnceValue(sessionRefPath).then(({ val }) => {
+      expect(val).toEqual({
+        accountId,
+        userId,
+        sessionId: pushId1,
+        startedAt: timestamp1,
+        endedAt: timestamp2
       });
+      console.log(`val at ${sessionRefPath}:`, val);
+    });
     await Promise.all([channelAssert, tempSessionAssert, sessionAssert]);
   });
 });

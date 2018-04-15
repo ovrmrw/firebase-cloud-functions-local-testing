@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
-import { admin } from './admin';
+import * as admin from 'firebase-admin';
 
-const database = admin.database();
+const database = admin.initializeApp().database();
 
 export const channel = functions.database
   .ref('/channel/{accountId}/{userId}/{pushId}')
@@ -24,10 +24,7 @@ export const channel = functions.database
 async function sessionizer(accountId: string, userId: string, pushId: string, timestamp: string) {
   const channelRefPath = `/channel/${accountId}/${userId}/${pushId}`;
   const tempSessionRefPath = `/_session/${accountId}/${userId}`;
-  const session = await admin
-    .database()
-    .ref(tempSessionRefPath)
-    .once('value');
+  const session = await database.ref(tempSessionRefPath).once('value');
   const val = session.val();
   if (val) {
     const sessionId = val.sessionId;
