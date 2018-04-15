@@ -6,12 +6,12 @@ type DataSnapshot = admin.database.DataSnapshot;
 /**
  * process.env.FIREBASE_CONFIGをオブジェクト化したものを返す。
  */
-export function getFirebaseConfig(): admin.AppOptions {
+export function getFirebaseConfig(): admin.AppOptions | undefined {
   try {
     return JSON.parse(process.env.FIREBASE_CONFIG);
   } catch (err) {
     console.error(err);
-    return {};
+    return undefined;
   }
 }
 

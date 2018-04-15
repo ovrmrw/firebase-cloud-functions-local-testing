@@ -1,4 +1,3 @@
-// tslint:disable:no-implicit-dependencies
 import * as Test from 'firebase-functions-test';
 import { FeaturesList } from 'firebase-functions-test/lib/features';
 import { DatabaseHelper, getFirebaseConfig } from '../../testing/helpers';

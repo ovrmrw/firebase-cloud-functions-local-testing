@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
-import { admin } from './admin';
+import { getApp } from './admin';
 
-const database = admin.database();
+const database = getApp().database();
 
 /**
  * クエリパラメータに応じたレスポンスを返し、副作用としてRealtime Databaseにも書き込みをする。
