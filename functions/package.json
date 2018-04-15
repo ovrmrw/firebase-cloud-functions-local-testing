@@ -9,8 +9,8 @@
     "deploy": "npm run use:prod && firebase deploy --only functions",
     "logs": "firebase functions:log",
     "test": "jest --forceExit",
-    "use:prod": "firebase use default",
-    "env:test": "firebase use test"
+    "use:prod": "firebase use prod",
+    "use:test": "firebase use test"
   },
   "main": "lib/index.js",
   "dependencies": {

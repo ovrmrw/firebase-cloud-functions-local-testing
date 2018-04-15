@@ -1,10 +1,10 @@
 import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+import { admin } from './admin';
 
-const database = admin.initializeApp().database();
+const database = admin.database();
 
 export const channel = functions.database
-  .ref('/channel/{accountId}/{userId}/{pushId}')
+  .ref('channel/{accountId}/{userId}/{pushId}')
   .onCreate(async (snapshot, context) => {
     const { timestamp } = context;
     const { accountId, userId, pushId } = context.params;
@@ -22,35 +22,45 @@ export const channel = functions.database
   });
 
 async function sessionizer(accountId: string, userId: string, pushId: string, timestamp: string) {
-  const channelRefPath = `/channel/${accountId}/${userId}/${pushId}`;
-  const tempSessionRefPath = `/_session/${accountId}/${userId}`;
-  const session = await database.ref(tempSessionRefPath).once('value');
-  const val = session.val();
+  const channelRefPath = getChannelRefPath(accountId, userId, pushId);
+  const tempSessionRefPath = getTempSessionRefPath(accountId, userId);
+  const val = await database
+    .ref(tempSessionRefPath)
+    .once('value')
+    .then(snap => snap.val());
+  const sessionId = val && val.sessionId ? val.sessionId : pushId;
   if (val) {
-    const sessionId = val.sessionId;
-    const sessionRefPath = `/session/${accountId}/${userId}/${sessionId}`;
+    const sessionRefPath = getSessionRefPath(accountId, userId, sessionId);
     const setSession = database.ref(sessionRefPath).set({
       ...val,
       endedAt: timestamp
     });
     const removeTempSession = database.ref(tempSessionRefPath).remove();
-    const updateChannel = database.ref(channelRefPath).update({
-      sessionId,
-      timestamp
-    });
-    await Promise.all([setSession, removeTempSession, updateChannel]);
+    await Promise.all([setSession, removeTempSession]);
   } else {
-    const sessionId = pushId;
     const setTempSession = database.ref(tempSessionRefPath).set({
       accountId,
       userId,
       sessionId,
       startedAt: timestamp
     });
-    const updateChannel = database.ref(channelRefPath).update({
-      sessionId,
-      timestamp
-    });
-    await Promise.all([setTempSession, updateChannel]);
+    await setTempSession;
   }
+  const updateChannel = database.ref(channelRefPath).update({
+    sessionId,
+    timestamp
+  });
+  await updateChannel;
+}
+
+export function getChannelRefPath(accountId: string, userId: string, pushId?: string): string {
+  return pushId ? `channel/${accountId}/${userId}/${pushId}` : `channel/${accountId}/${userId}`;
+}
+
+export function getTempSessionRefPath(accountId: string, userId: string): string {
+  return `_session/${accountId}/${userId}`;
+}
+
+export function getSessionRefPath(accountId: string, userId: string, sessionId?: string): string {
+  return sessionId ? `session/${accountId}/${userId}/${sessionId}` : `session/${accountId}/${userId}`;
 }

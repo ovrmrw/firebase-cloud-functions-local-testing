@@ -1,17 +1,30 @@
+import './env';
 import * as admin from 'firebase-admin';
 
 type DataSnapshot = admin.database.DataSnapshot;
 
 /**
+ * process.env.FIREBASE_CONFIGをオブジェクト化したものを返す。
+ */
+export function getFirebaseConfig(): admin.AppOptions {
+  try {
+    return JSON.parse(process.env.FIREBASE_CONFIG);
+  } catch (err) {
+    console.error(err);
+    return {};
+  }
+}
+
+/**
  * admin.initializeApp()が未実行であれば実行した上でAppを返す。
  */
-export function initializeAppSafe(): admin.app.App {
+export function getInitializedApp(): admin.app.App {
   const name = '__TESTING__';
   const appForTesting = admin.apps.find(app => app.name === name);
   if (appForTesting) {
     return appForTesting;
   } else {
-    return admin.initializeApp(undefined, name);
+    return admin.initializeApp(getFirebaseConfig(), name);
   }
 }
 
@@ -21,8 +34,8 @@ export function initializeAppSafe(): admin.app.App {
 export class DatabaseHelper {
   private database: admin.database.Database;
 
-  constructor(app: admin.app.App) {
-    this.database = app.database();
+  constructor() {
+    this.database = getInitializedApp().database();
   }
 
   refOnceValue(refPath: string | string[]): Promise<{ val: any; snap: DataSnapshot }> {

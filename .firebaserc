@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "functions-local-testing-6379b",
-    "test": "functions-local-testing-test"
+    "test": "functions-local-testing-test",
+    "prod": "functions-local-testing-6379b"
   }
 }
