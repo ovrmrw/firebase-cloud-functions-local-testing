@@ -1,4 +1,3 @@
-import './env';
 import * as admin from 'firebase-admin';
 
 type DataSnapshot = admin.database.DataSnapshot;

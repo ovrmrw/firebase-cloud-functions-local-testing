@@ -3,7 +3,7 @@ import { FeaturesList } from 'firebase-functions-test/lib/features';
 import { DatabaseHelper, getFirebaseConfig } from '../../testing/helpers';
 import { channel, getChannelRefPath, getTempSessionRefPath, getSessionRefPath } from '../../src/channel'; // process.env.FIREBASE_CONFIGの定義後にimportしないとエラーになる。
 
-describe('channel', () => {
+describe.only('channel', () => {
   let test: FeaturesList;
   let database: DatabaseHelper;
 
