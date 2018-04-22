@@ -43,7 +43,7 @@ describe('pubsub', () => {
     const messages = await pubsubHelper.pullMessages(subscriptionName);
     expect(messages.length).toBe(1);
     const firstMessage = JSON.parse(messages[0].message.data.toString());
-    expect(JSON.parse(messages[0].message.data.toString())).toEqual(value);
+    expect(firstMessage).toEqual(value);
     console.log('first message:', firstMessage);
   });
 
