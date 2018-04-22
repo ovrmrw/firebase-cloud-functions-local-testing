@@ -1,5 +1,7 @@
 import * as admin from 'firebase-admin';
 
+export const projectId = process.env.GCLOUD_PROJECT;
+
 export function getApp(): admin.app.App {
   const name = '__PRODUCTION__';
   const appForProduction = admin.apps.find(app => app.name === name);

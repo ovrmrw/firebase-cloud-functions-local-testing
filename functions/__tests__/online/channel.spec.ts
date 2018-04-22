@@ -3,14 +3,16 @@ import { FeaturesList } from 'firebase-functions-test/lib/features';
 import { DatabaseHelper, getFirebaseConfig } from '../../testing/helpers';
 import { channel, getChannelRefPath, getTempSessionRefPath, getSessionRefPath } from '../../src/channel'; // process.env.FIREBASE_CONFIGの定義後にimportしないとエラーになる。
 
-describe.only('channel', () => {
+jest.setTimeout(1000 * 30);
+
+describe('channel', () => {
   let test: FeaturesList;
-  let database: DatabaseHelper;
+  let databaseHelper: DatabaseHelper;
 
   beforeEach(async () => {
     test = Test(getFirebaseConfig());
-    database = new DatabaseHelper();
-    await database.refRemove(['_session', 'session', 'channel']);
+    databaseHelper = new DatabaseHelper();
+    await databaseHelper.refRemove(['_session', 'session', 'channel']);
   });
 
   it('valueにaccountId, userId, pushId, timestampが付与され、sessionがスタートする。', async () => {
@@ -22,13 +24,16 @@ describe.only('channel', () => {
     const channelRefPath = getChannelRefPath(accountId, userId, pushId);
     const value = { bar: 1 };
 
+    // action
     const snapshot = test.database.makeDataSnapshot(value, channelRefPath);
+    await databaseHelper.writeFakeSnapshot(snapshot);
     await test.wrap(channel)(snapshot, {
       params: { accountId, userId, pushId },
       timestamp
     });
 
-    const channelAssert = database.refOnceValue(channelRefPath).then(({ val }) => {
+    // database assertions
+    const channelAssert = databaseHelper.refOnceValue(channelRefPath).then(({ val }) => {
       expect(val).toEqual({
         ...value,
         accountId,
@@ -40,7 +45,7 @@ describe.only('channel', () => {
       console.log(`val at ${channelRefPath}:`, val);
     });
     const tempSessionRefPath = getTempSessionRefPath(accountId, userId);
-    const tempSessionAssert = database.refOnceValue(tempSessionRefPath).then(({ val }) => {
+    const tempSessionAssert = databaseHelper.refOnceValue(tempSessionRefPath).then(({ val }) => {
       expect(val).toEqual({
         accountId,
         userId,
@@ -50,7 +55,7 @@ describe.only('channel', () => {
       console.log(`val at ${tempSessionRefPath}:`, val);
     });
     const sessionRefPath = getSessionRefPath(accountId, userId);
-    const sessionAssert = database.refOnceValue(sessionRefPath).then(({ val }) => {
+    const sessionAssert = databaseHelper.refOnceValue(sessionRefPath).then(({ val }) => {
       expect(val).toBeNull();
     });
     await Promise.all([channelAssert, tempSessionAssert, sessionAssert]);
@@ -67,20 +72,25 @@ describe.only('channel', () => {
     const channelRefPath = getChannelRefPath(accountId, userId);
     const value = { bar: 1 };
 
-    const channelRefPath1 = `${channelRefPath}/${pushId1}`;
+    // first action
+    const channelRefPath1 = getChannelRefPath(accountId, userId, pushId1);
     const snapshot1 = test.database.makeDataSnapshot(value, channelRefPath1);
+    await databaseHelper.writeFakeSnapshot(snapshot1);
     await test.wrap(channel)(snapshot1, {
       params: { accountId, userId, pushId: pushId1 },
       timestamp: timestamp1
     });
-    const channelRefPath2 = `${channelRefPath}/${pushId2}`;
+    // second action
+    const channelRefPath2 = getChannelRefPath(accountId, userId, pushId2);
     const snapshot2 = test.database.makeDataSnapshot(value, channelRefPath2);
+    await databaseHelper.writeFakeSnapshot(snapshot2);
     await test.wrap(channel)(snapshot2, {
       params: { accountId, userId, pushId: pushId2 },
       timestamp: timestamp2
     });
 
-    const channelAssert = database.refOnceValue(channelRefPath2).then(({ val }) => {
+    // database assertions
+    const channelAssert = databaseHelper.refOnceValue(channelRefPath2).then(({ val }) => {
       expect(val).toEqual({
         ...value,
         accountId,
@@ -92,11 +102,11 @@ describe.only('channel', () => {
       console.log(`val at ${channelRefPath2}:`, val);
     });
     const tempSessionRefPath = getTempSessionRefPath(accountId, userId);
-    const tempSessionAssert = database.refOnceValue(tempSessionRefPath).then(({ val }) => {
+    const tempSessionAssert = databaseHelper.refOnceValue(tempSessionRefPath).then(({ val }) => {
       expect(val).toBeNull();
     });
     const sessionRefPath = getSessionRefPath(accountId, userId, pushId1);
-    const sessionAssert = database.refOnceValue(sessionRefPath).then(({ val }) => {
+    const sessionAssert = databaseHelper.refOnceValue(sessionRefPath).then(({ val }) => {
       expect(val).toEqual({
         accountId,
         userId,

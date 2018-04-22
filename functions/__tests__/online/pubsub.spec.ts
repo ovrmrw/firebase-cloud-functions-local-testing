@@ -1,84 +1,89 @@
 import * as Test from 'firebase-functions-test';
 import { FeaturesList } from 'firebase-functions-test/lib/features';
-import * as PubSub from '@google-cloud/pubsub';
-import { DatabaseHelper, getFirebaseConfig } from '../../testing/helpers';
-import { pubsub, projectId, topicName, getPubsubRefPath } from '../../src/pubsub';
+import { DatabaseHelper, getFirebaseConfig, PubsubHelper } from '../../testing/helpers';
+import { pubsub, topicName, getPubsubRefPath } from '../../src/pubsub';
 
-describe.only('pubsub', () => {
+jest.setTimeout(1000 * 30);
+
+describe('pubsub', () => {
   let test: FeaturesList;
-  let database: DatabaseHelper;
-  let publisherClient: any;
-  let subscriberClient: any;
-  let formattedSubscription: string;
-  let formattedTopic: string;
+  let databaseHelper: DatabaseHelper;
+  let pubsubHelper: PubsubHelper;
+  const subscriptionName = 'sample-subscription__test';
 
   beforeEach(async () => {
     test = Test(getFirebaseConfig());
-    database = new DatabaseHelper();
-    // await database.refRemove(['pubsub']);
-    publisherClient = new PubSub.v1.PublisherClient();
-    formattedTopic = publisherClient.topicPath(projectId, topicName);
-    // await publisherClient.deleteTopic({ topic: formattedTopic }).catch(err => {
-    //   // console.error(err);
-    // });
-    subscriberClient = new PubSub.v1.SubscriberClient();
-    formattedSubscription = subscriberClient.subscriptionPath(projectId, 'sample-subscription');
-    // await subscriberClient.deleteSubscription({ subscription: formattedSubscription }).catch(err => {
-    //   // console.error(err);
-    // });
+    databaseHelper = new DatabaseHelper();
+    await databaseHelper.refRemove(['pubsub']);
+    pubsubHelper = new PubsubHelper();
+    await pubsubHelper.deleteSubscription(subscriptionName);
+    await pubsubHelper.createSubscription(subscriptionName, topicName);
   });
 
-  it('fail test', async () => {
-    expect.assertions(1);
+  it('Databaseに書き込まれているとともに、Topicにもメッセージが送られている。', async () => {
+    expect.assertions(3);
     const accountId = 'accountId1';
     const userId = 'userId1';
     const pushId = 'pushId1';
     const pubsubRefPath = getPubsubRefPath(accountId, userId, pushId);
-    const value = 'foooooooooooo';
+    const value = { bar: 1 };
 
-    // const formattedSubscription = subscriberClient.subscriptionPath(projectId, topicName);
-
+    // action
     const snapshot = test.database.makeDataSnapshot(value, pubsubRefPath);
+    await databaseHelper.writeFakeSnapshot(snapshot);
     await test.wrap(pubsub)(snapshot, { params: { accountId, userId, pushId } });
 
-    console.log(1);
-    // await subscriberClient
-    //   .createSubscription({
-    //     name: formattedSubscription,
-    //     topic: formattedTopic
-    //   })
-    //   .then(responses => {
-    //     const response = responses[0];
-    //     // doThingsWith(response)
-    //     console.log('response', response);
-    //   })
-    //   .catch(err => {
-    //     console.error(err);
-    //   });
+    // database assertion
+    await databaseHelper.refOnceValue(pubsubRefPath).then(({ val }) => {
+      expect(val).toEqual(value);
+      console.log(`val at ${pubsubRefPath}:`, val);
+    });
 
-    // await database.refOnceValue(pubsubRefPath).then(({ val }) => {
-    //   // Realtime Databaseに書き込まれた内容を確認。
-    //   expect(val).toEqual(value);
-    //   console.log(`val at ${pubsubRefPath}:`, val);
-    // });
+    // pubsub message assertion
+    const messages = await pubsubHelper.pullMessages(subscriptionName);
+    expect(messages.length).toBe(1);
+    const firstMessage = JSON.parse(messages[0].message.data.toString());
+    expect(JSON.parse(messages[0].message.data.toString())).toEqual(value);
+    console.log('first message:', firstMessage);
+  });
 
-    const maxMessages = 1;
-    const request = {
-      subscription: formattedSubscription,
-      maxMessages: maxMessages
-    };
-    await subscriberClient
-      .pull(request)
-      .then(responses => {
-        const response = responses[0];
-        console.log('subscriber response:', response);
-        const receivedMessage = response.receivedMessages[0];
-        const data: Buffer = receivedMessage.message.data;
-        expect(data.toString()).toBe(value);
-      })
-      .catch(err => {
-        console.log('!!!!!!');
-        console.error(err);
+  it('Topicに2回メッセージが送られている。', async () => {
+    expect.assertions(4);
+    const accountId = 'accountId1';
+    const userId = 'userId1';
+    const pushId1 = 'pushId1';
+    const pushId2 = 'pushId2';
+    const value1 = { bar: 1 };
+    const value2 = { bar: 2 };
+
+    // first action
+    const pubsubRefPath1 = getPubsubRefPath(accountId, userId, pushId1);
+    const snapshot1 = test.database.makeDataSnapshot(value1, pubsubRefPath1);
+    await databaseHelper.writeFakeSnapshot(snapshot1);
+    await test.wrap(pubsub)(snapshot1, { params: { accountId, userId, pushId1 } });
+    // second action
+    const pubsubRefPath2 = getPubsubRefPath(accountId, userId, pushId2);
+    const snapshot2 = test.database.makeDataSnapshot(value2, pubsubRefPath2);
+    await databaseHelper.writeFakeSnapshot(snapshot2);
+    await test.wrap(pubsub)(snapshot2, { params: { accountId, userId, pushId2 } });
+
+    // database assertion
+    await databaseHelper.refOnceValue(getPubsubRefPath(accountId, userId)).then(({ val }) => {
+      expect(val).toEqual({
+        [pushId1]: value1,
+        [pushId2]: value2
       });
+      console.log(`val at ${getPubsubRefPath(accountId, userId)}:`, val);
+    });
+
+    // pubsub message assertions
+    const messages = await pubsubHelper.pullMessages(subscriptionName, 2);
+    expect(messages.length).toBe(2);
+    const firstMessage = JSON.parse(messages[0].message.data.toString());
+    expect(firstMessage).toEqual(value1);
+    const secondMessage = JSON.parse(messages[1].message.data.toString());
+    expect(secondMessage).toEqual(value2);
+    console.log('first message:', firstMessage);
+    console.log('second message:', secondMessage);
   });
 });

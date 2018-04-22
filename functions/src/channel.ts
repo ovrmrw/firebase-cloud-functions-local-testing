@@ -8,9 +8,7 @@ export const channel = functions.database
   .onCreate(async (snapshot, context) => {
     const { timestamp } = context;
     const { accountId, userId, pushId } = context.params;
-    const val = snapshot.val();
-    const updateChannel = database.ref(snapshot.ref).update({
-      ...val,
+    const updateChannel = snapshot.ref.update({
       accountId,
       userId,
       channelId: pushId,

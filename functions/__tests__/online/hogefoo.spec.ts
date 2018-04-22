@@ -4,14 +4,16 @@ import { DatabaseHelper, getFirebaseConfig, getInitializedApp } from '../../test
 import { hogefoo } from '../../src/hogefoo'; // process.env.FIREBASE_CONFIGの定義後にimportしないとエラーになる。
 import { DataSnapshot } from 'firebase-functions/lib/providers/database';
 
+jest.setTimeout(1000 * 30);
+
 describe('hogefoo', () => {
   let test: FeaturesList;
-  let database: DatabaseHelper;
+  let databaseHelper: DatabaseHelper;
 
   beforeEach(async () => {
     test = Test(getFirebaseConfig());
-    database = new DatabaseHelper();
-    await database.refRemove(['hoge']);
+    databaseHelper = new DatabaseHelper();
+    await databaseHelper.refRemove(['hoge']);
   });
 
   it('valueにpushIdとeventIdが付与される', async () => {
@@ -22,11 +24,13 @@ describe('hogefoo', () => {
     const value = { bar: 1 };
     const expected = { ...value, pushId, eventId };
 
+    // action
     const snapshot = test.database.makeDataSnapshot(value, hogeRefPath);
+    await databaseHelper.writeFakeSnapshot(snapshot);
     await test.wrap(hogefoo)(snapshot, { params: { pushId }, eventId });
 
-    await database.refOnceValue(hogeRefPath).then(({ val }) => {
-      // Realtime Databaseに書き込まれた内容を確認。
+    // database assertion
+    await databaseHelper.refOnceValue(hogeRefPath).then(({ val }) => {
       expect(val).toEqual({
         ...value,
         pushId,

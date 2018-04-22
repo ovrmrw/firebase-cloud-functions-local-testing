@@ -1,4 +1,4 @@
-/**
+/*
  * 下記の環境変数を設定する。
  * GOOGLE_APPLICATION_CREDENTIALS
  * FIREBASE_CONFIG
