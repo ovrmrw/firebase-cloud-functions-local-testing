@@ -11,11 +11,15 @@ describe('pubsub', () => {
   let pubsubHelper: PubsubHelper;
   const subscriptionName = 'sample-subscription__test';
 
-  beforeEach(async () => {
+  beforeEach(() => {
     test = Test(getFirebaseConfig());
     databaseHelper = new DatabaseHelper();
-    await databaseHelper.refRemove(['pubsub']);
     pubsubHelper = new PubsubHelper();
+  });
+
+  beforeEach(async () => {
+    // initialize testing environment
+    await databaseHelper.refRemove(['pubsub']);
     await pubsubHelper.deleteSubscription(subscriptionName);
     await pubsubHelper.createSubscription(subscriptionName, topicName);
   });
@@ -28,7 +32,7 @@ describe('pubsub', () => {
     const pubsubRefPath = getPubsubRefPath(accountId, userId, pushId);
     const value = { bar: 1 };
 
-    // action
+    // trigger
     const snapshot = test.database.makeDataSnapshot(value, pubsubRefPath);
     await databaseHelper.writeFakeSnapshot(snapshot);
     await test.wrap(pubsub)(snapshot, { params: { accountId, userId, pushId } });
@@ -56,12 +60,12 @@ describe('pubsub', () => {
     const value1 = { bar: 1 };
     const value2 = { bar: 2 };
 
-    // first action
+    // first trigger
     const pubsubRefPath1 = getPubsubRefPath(accountId, userId, pushId1);
     const snapshot1 = test.database.makeDataSnapshot(value1, pubsubRefPath1);
     await databaseHelper.writeFakeSnapshot(snapshot1);
     await test.wrap(pubsub)(snapshot1, { params: { accountId, userId, pushId1 } });
-    // second action
+    // second trigger
     const pubsubRefPath2 = getPubsubRefPath(accountId, userId, pushId2);
     const snapshot2 = test.database.makeDataSnapshot(value2, pubsubRefPath2);
     await databaseHelper.writeFakeSnapshot(snapshot2);

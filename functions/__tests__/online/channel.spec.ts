@@ -9,9 +9,13 @@ describe('channel', () => {
   let test: FeaturesList;
   let databaseHelper: DatabaseHelper;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     test = Test(getFirebaseConfig());
     databaseHelper = new DatabaseHelper();
+  });
+
+  beforeEach(async () => {
+    // initialize testing environment
     await databaseHelper.refRemove(['_session', 'session', 'channel']);
   });
 
@@ -24,7 +28,7 @@ describe('channel', () => {
     const channelRefPath = getChannelRefPath(accountId, userId, pushId);
     const value = { bar: 1 };
 
-    // action
+    // trigger
     const snapshot = test.database.makeDataSnapshot(value, channelRefPath);
     await databaseHelper.writeFakeSnapshot(snapshot);
     await test.wrap(channel)(snapshot, {
@@ -72,7 +76,7 @@ describe('channel', () => {
     const channelRefPath = getChannelRefPath(accountId, userId);
     const value = { bar: 1 };
 
-    // first action
+    // first trigger
     const channelRefPath1 = getChannelRefPath(accountId, userId, pushId1);
     const snapshot1 = test.database.makeDataSnapshot(value, channelRefPath1);
     await databaseHelper.writeFakeSnapshot(snapshot1);
@@ -80,7 +84,7 @@ describe('channel', () => {
       params: { accountId, userId, pushId: pushId1 },
       timestamp: timestamp1
     });
-    // second action
+    // second trigger
     const channelRefPath2 = getChannelRefPath(accountId, userId, pushId2);
     const snapshot2 = test.database.makeDataSnapshot(value, channelRefPath2);
     await databaseHelper.writeFakeSnapshot(snapshot2);

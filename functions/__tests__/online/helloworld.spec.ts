@@ -7,8 +7,12 @@ describe('helloworld', () => {
   let database: DatabaseHelper;
   const helloRefPath = getHelloRefPath();
 
-  beforeEach(async () => {
+  beforeEach(() => {
     database = new DatabaseHelper();
+  });
+
+  beforeEach(async () => {
+    // initialize testing environment
     await database.refRemove(['hello']);
   });
 

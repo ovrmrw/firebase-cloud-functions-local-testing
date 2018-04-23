@@ -10,9 +10,13 @@ describe('hogefoo', () => {
   let test: FeaturesList;
   let databaseHelper: DatabaseHelper;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     test = Test(getFirebaseConfig());
     databaseHelper = new DatabaseHelper();
+  });
+
+  beforeEach(async () => {
+    // initialize testing environment
     await databaseHelper.refRemove(['hoge']);
   });
 
@@ -22,9 +26,8 @@ describe('hogefoo', () => {
     const eventId = 'eventId1';
     const hogeRefPath = `hoge/foo/${pushId}`;
     const value = { bar: 1 };
-    const expected = { ...value, pushId, eventId };
 
-    // action
+    // trigger
     const snapshot = test.database.makeDataSnapshot(value, hogeRefPath);
     await databaseHelper.writeFakeSnapshot(snapshot);
     await test.wrap(hogefoo)(snapshot, { params: { pushId }, eventId });
