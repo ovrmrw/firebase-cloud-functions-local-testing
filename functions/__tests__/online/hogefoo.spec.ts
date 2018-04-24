@@ -20,6 +20,10 @@ describe('hogefoo', () => {
     await databaseHelper.refRemove(['hoge']);
   });
 
+  afterEach(() => {
+    (test as any).cleanup();
+  });
+
   it('valueにpushIdとeventIdが付与される', async () => {
     expect.assertions(1);
     const pushId = 'pushId1';

@@ -19,6 +19,10 @@ describe('channel', () => {
     await databaseHelper.refRemove(['_session', 'session', 'channel']);
   });
 
+  afterEach(() => {
+    (test as any).cleanup();
+  });
+
   it('valueにaccountId, userId, pushId, timestampが付与され、sessionがスタートする。', async () => {
     expect.assertions(3);
     const accountId = 'accountId1';

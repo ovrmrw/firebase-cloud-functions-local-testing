@@ -24,6 +24,10 @@ describe('pubsub', () => {
     await pubsubHelper.createSubscription(subscriptionName, topicName);
   });
 
+  afterEach(() => {
+    (test as any).cleanup();
+  });
+
   it('Databaseに書き込まれているとともに、Topicにもメッセージが送られている。', async () => {
     expect.assertions(3);
     const accountId = 'accountId1';
